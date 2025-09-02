@@ -41,6 +41,9 @@ ffmpeg -s f'{WIDTH_DS}x{HEIGHT_DS}' -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_d
 ```
 
 WIDTH_DS = [1920, 1280, 960, 640]
+
 HEIGHT_DS = [1080, 720, 540, 360]
+
 BIT_RATE = ['5800k', '3000k', '1750k', '750k']
+
 BUF_SIZE = ['11600k', '6000k', '3500k', '1500k']
