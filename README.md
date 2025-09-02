@@ -5,11 +5,13 @@ This initiative created a dedicated video quality assessment dataset to drive th
 
 [BVI-SR](https://data.bris.ac.uk/data/dataset/1gqlebyalf4ha25k228qxh5rqz)
 
-## Pipeline
+## Pipelines
+
+For each category, we sample four bitrates, each corresponding to a distinct downsampling resolution, and apply them to both H.265 and AV1 encoders. This results in a total of eight pipelines per category.
 
 ### Baseline
 
-yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** yuv
+yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
 
 Commands:
 
