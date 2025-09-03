@@ -5,6 +5,8 @@ This initiative created a dedicated video quality assessment dataset to drive th
 
 [BVI-SR](https://data.bris.ac.uk/data/dataset/1gqlebyalf4ha25k228qxh5rqz)
 
+This dataset contains 24 4K YUV 4:2:0 video sequences.
+
 ## Pipelines
 
 For each category, we sample four bitrates, each corresponding to a distinct downsampling resolution, and apply them to both H.265 and AV1 encoders. This results in a total of eight pipelines per category.
@@ -13,7 +15,7 @@ For each category, we sample four bitrates, each corresponding to a distinct dow
 
 Pipeline:
 
-yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ YUV
 
 Commands:
 
@@ -58,11 +60,11 @@ BUF_SIZE $\in$ ['11600k', '6000k', '3500k', '1500k']
 
 #### 2.1 Deep Downsampling
 
-Deep Downsampler: [Learned Image Downscaling for Upscaling using Content Adaptive Resampler. TIP 2020.](https://github.com/sunwj/CAR)
+Deep Downsampler: [CAR](https://github.com/sunwj/CAR) (TIP 2020)
 
 Pipeline:
 
-yuv $\rightarrow$ **Deep Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+YUV $\rightarrow$ **Deep Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ YUV
 
 Commands:
 
@@ -123,7 +125,7 @@ Denoising filter: BM3D
 
 Pipeline:
 
-yuv $\rightarrow$ **BM3D Denoising** $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+YUV $\rightarrow$ **BM3D Denoising** $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ YUV
 
 Denoising should be operated before downsampling, which is claimed in [link](https://sonnati.wordpress.com/2012/10/19/ffmpeg-the-swiss-army-knife-of-internet-streaming-part-vi/).
 
@@ -136,7 +138,7 @@ ffmpeg -s {WIDTH_IN}x{HEIGHT_IN} -r 30 -pix_fmt yuv420p -f rawvideo -i Boat.yuv 
 
 Besides, the Lanczos downsampling command, encoding command, decoding command and Lanczos upsampling command are the same as those in the baseline.
 
-### 2.3 Sharpening
+#### 2.3 Sharpening
 
 Sharpening filter improves the end-to-end compression efficiency with respect to the original source video under a fixed heuristic filter parameter set, which is mentioned in [VMAF Based Rate-Distortion Optimization for Video Coding. MMSP 2020].
 
@@ -144,7 +146,7 @@ Sharpening filter: ffmpeg unsharp
 
 Pipeline:
 
-yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ **Sharpening** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ **Sharpening** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ YUV
 
 Commands:
 ```
@@ -153,3 +155,105 @@ ffmpeg -s {WIDTH_DS}x{HEIGHT_DS} -r str(FPS) -pix_fmt yuv420p -f rawvideo -i Boa
 ```
 
 Besides, the Lanczos downsampling command, encoding command, decoding command and Lanczos upsampling command are the same as those in the baseline.
+
+### 3. Postfiltering
+
+#### 3.1 General Deep Upsampling
+
+General deep upsampler: [Swin-IR](https://github.com/JingyunLiang/SwinIR) (ICCV 2021)
+
+Pipeline:
+
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Deep Upsampling** $\rightarrow$ YUV
+
+Commands:
+
+Similar to the deep downsampler CAR, this method is also based on RGB images with 2x and 4x parameters published. Therefore, I apply 1.5x upsampling to the low-resolution YUV video when its resolution is 1280x720 and 640x360. Then, I transform the low-resolution YUV video to RGB images and upsample them by Swin-IR. Finally, I transform the high-resolution RGB images into a YUV video.
+
+**Step 1 (optional).** Lanczos upsample the YUV video to 1.5x when the resolution of the input vidoes are 1280x720 or 640x360.
+
+```
+ffmpeg -s 1280x720 -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_us.yuv -vf scale={1920}:{1080}:flags=lanczos -f rawvideo -pix_fmt yuv420p Boat_us2.yuv
+```
+
+**Step 2.** Transform a YUV video into RGB images.
+
+The same as the YUVvideo2IMGs function in 2.1 Deep Downsampling.
+
+**Step 3.** Deep upsampling 2x or 4x using Swin-IR.
+
+```
+python main_test_swinir.py --task real_sr --scale 2 --model_path model_zoo/003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x2_GAN.pth --folder_lq /path/to/low/quality/images
+```
+
+**Step 4.** Transform RGB images into a YUV video.
+
+The same as the IMG2YUVvideo function in 2.1 Deep Downsampling.
+
+Besides, the Lanczos downsampling command, encoding command and decoding command are the same as those in the baseline.
+
+#### 3.2 Compression-aware Deep Upsampling
+
+Compression-aware deep upsampler: [PnP-VCVE](https://github.com/ZeldaM1/PnP-VCVE) (CVPR 2025)
+
+Only 4x model parameters are published. Hence, I haven't run this pipeline.
+
+Pipeline:
+
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Deep Upsampling** $\rightarrow$ YUV
+
+#### 3.3 Debanding
+
+Despite the improved capabilities of video codecs, banding artifacts remain a dominant visual impairment of high-quality, high-definition compressed videos. This fact is mentioned in [Adaptive Debanding Filter. IEEE Signal Processing Letters 2020.]
+
+Debanding filter: ffmpeg deband
+
+Pipeline:
+
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ **Debanding** $\rightarrow$ YUV
+
+Commands:
+
+```
+# deband
+ffmpeg -s 3840x2160 -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_us.yuv -vf deband -f rawvideo -pix_fmt yuv420p Boat_db.yuv
+```
+
+Besides, the Lanczos downsampling, encoding, decoding and Lanczos upsampling commands are the same as those in the baseline.
+
+#### 3.4 Deblocking
+
+Deblocking filter: ffmpeg deblock
+
+Pipeline:
+
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ **Deblocking** $\rightarrow$ YUV
+
+Commands:
+
+```
+# deblock
+ffmpeg -s 3840x2160 -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_us.yuv -vf deblock=filter=strong -f rawvideo -pix_fmt yuv420p Boat_deblock.yuv
+```
+
+Besides, the Lanczos downsampling, encoding, decoding and Lanczos upsampling commands are the same as those in the baseline.
+
+#### 3.5 Decompression
+
+Decompression filter: [STDF](https://github.com/ryanxingql/stdf-pytorch) (AAAI 2020)
+
+Pipeline:
+
+YUV $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ **Decompression** $\rightarrow$ YUV
+
+Commands:
+
+```
+# decompression
+python test_one_video.py
+```
+I modified the inference code so that this model can be applied directly to YUV videos.
+
+Besides, the Lanczos downsampling, encoding, decoding and Lanczos upsampling commands are the same as those in the baseline.
+
+### 4. Combination
