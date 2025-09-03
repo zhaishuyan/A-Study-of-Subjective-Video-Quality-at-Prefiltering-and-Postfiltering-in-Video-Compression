@@ -98,6 +98,8 @@ def YUVvideo2IMGs(yuv_video_path, output_dir, height, width):
 
 **Step 3.**  Downsample the RGB images by CAR;
 
+Download pre-trained models from [link](https://mega.nz/#!XzIm3YhT!jbIOOOGBOiKtv3VAOD782Mz7nK1L_kma-BzR-RhboW4) and add them into CAR/models.
+
 ```
 python run_downsample.py --img_dir /path/to/high/resolution/images/ --scale 2 --output_dir /path/to/low/resolution/images/
 ```
@@ -182,6 +184,8 @@ ffmpeg -s 1280x720 -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_us.yuv -vf scale={
 The same as the YUVvideo2IMGs function in 2.1 Deep Downsampling.
 
 **Step 3.** Deep upsampling 2x or 4x using Swin-IR.
+
+Download [4x](https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/003_realSR_BSRGAN_DFOWMFC_s64w8_SwinIR-L_x4_GAN-with-dict-keys-params-and-params_ema.pth) and [2x](https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x2_GAN-with-dict-keys-params-and-params_ema.pth) models and save them into SwinIR/model_zoo/.
 
 ```
 python main_test_swinir.py --task real_sr --scale 2 --model_path model_zoo/003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x2_GAN.pth --folder_lq /path/to/low/quality/images
