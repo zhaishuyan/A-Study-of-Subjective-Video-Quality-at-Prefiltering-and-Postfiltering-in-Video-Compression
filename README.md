@@ -1,4 +1,5 @@
-# A-VQA-Dataset-for-Prefiltering-and-Postfiltering-in-Video-Compression
+# A Study of Subjective Video Quality at Prefiltering and Postfiltering in Video Compression
+
 This initiative created a dedicated video quality assessment dataset to drive the development of intelligent pre-processing and post-processing filters for next-generation video compression.
 
 ## Video Source
@@ -257,3 +258,48 @@ I modified the inference code so that this model can be applied directly to YUV 
 Besides, the Lanczos downsampling, encoding, decoding and Lanczos upsampling commands are the same as those in the baseline.
 
 ### 4. Combination
+
+#### 4.1 Pre (Deep Downsampling) + Post (Deep Upsampling)
+
+Deep Downsampler: CAR
+
+Deep Upsampler: SwinIR
+
+Pipeline:
+
+YUV $\rightarrow$ **Deep Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Deep Upsampling** $\rightarrow$ YUV
+
+All commands are defined before.
+
+#### 4.2 Pre (Denoising + Sharpening) + Post (Debanding + Deblocking)
+
+Pipeline:
+
+YUV $\rightarrow$ **Denoising** $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ **Sharpening** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ **Debanding** $\rightarrow$ **Deblocking** $\rightarrow$ YUV
+
+All commands are defined before.
+
+#### 4.3 Pre (Denoising + Sharpening) + Post (Decompression)
+
+Pipeline:
+
+YUV $\rightarrow$ **Denoising** $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ **Sharpening** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ **Decompression** $\rightarrow$ YUV
+
+All commands are defined before.
+
+#### 4.4 Jointly-trained Deep Rescaling
+
+Deep Rescaler: [CAR](https://github.com/sunwj/CAR)
+
+Pipeline: 
+
+YUV $\rightarrow$ **Deep Downsampling** $\rightarrow$ YUV $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ YUV $\rightarrow$ **Deep Upsampling** $\rightarrow$ YUV
+
+Commands:
+
+```
+# CAR upsampling
+python run_upsample.py --img_dir /path/to/decoded/videos/ --scale 2 --output_dir /path/to/output/dir/
+```
+
+Other commands are defined before.
