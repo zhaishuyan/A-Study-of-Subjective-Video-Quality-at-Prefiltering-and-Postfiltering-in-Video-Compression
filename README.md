@@ -11,6 +11,8 @@ For each category, we sample four bitrates, each corresponding to a distinct dow
 
 ### 1. Baseline
 
+Pipeline:
+
 yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
 
 Commands:
@@ -42,6 +44,8 @@ ffmpeg -i Boat_ec.mp4 -c:v rawvideo -pix_fmt yuv420p -f rawvideo Boat_dc.yuv
 ffmpeg -s f'{WIDTH_DS}x{HEIGHT_DS}' -r 30 -pix_fmt yuv420p -f rawvideo -i Boat_dc.yuv -vf scale=3840:2160:flags=lanczos -f rawvideo -pix_fmt yuv420p Boat_us.yuv
 ```
 
+Here, the variable are valued as follow:
+
 WIDTH_DS $\in$ [1920, 1280, 960, 640]
 
 HEIGHT_DS $\in$ [1080, 720, 540, 360]
@@ -50,11 +54,15 @@ BIT_RATE $\in$ ['5800k', '3000k', '1750k', '750k']
 
 BUF_SIZE $\in$ ['11600k', '6000k', '3500k', '1500k']
 
-## 2. Prefiltering
+### 2. Prefiltering
 
-yuv $\rightarrow$ **Deep Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+#### 2.1 Deep Downsampling
 
 Deep Downsampler: [Learned Image Downscaling for Upscaling using Content Adaptive Resampler. TIP 2020.](https://github.com/sunwj/CAR)
+
+Pipeline:
+
+yuv $\rightarrow$ **Deep Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
 
 Commands:
 
@@ -109,4 +117,39 @@ def IMG2YUVvideo(img_dir, prefix, save_path):
             f.write(np.array(yuv, dtype='uint8').tobytes())
 ```
 
+#### 2.2 Denoising
 
+Denoising filter: BM3D
+
+Pipeline:
+
+yuv $\rightarrow$ **BM3D Denoising** $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+
+Denoising should be operated before downsampling, which is claimed in [link](https://sonnati.wordpress.com/2012/10/19/ffmpeg-the-swiss-army-knife-of-internet-streaming-part-vi/).
+
+Commands:
+
+```
+# Denoising
+ffmpeg -s {WIDTH_IN}x{HEIGHT_IN} -r 30 -pix_fmt yuv420p -f rawvideo -i Boat.yuv -filter_complex bm3d=sigma=20:block=16:bstep=2:group=1:estim=basic -f rawvideo -pix_fmt yuv420p Boat_dn.yuv
+```
+
+Besides, the Lanczos downsampling command, encoding command, decoding command and Lanczos upsampling command are the same as those in the baseline.
+
+### 2.3 Sharpening
+
+Sharpening filter improves the end-to-end compression efficiency with respect to the original source video under a fixed heuristic filter parameter set, which is mentioned in [VMAF Based Rate-Distortion Optimization for Video Coding. MMSP 2020].
+
+Sharpening filter: ffmpeg unsharp
+
+Pipeline:
+
+yuv $\rightarrow$ **Lanczos Downsampling** $\rightarrow$ **Sharpening** $\rightarrow$ yuv $\rightarrow$ **Encoding** $\rightarrow$ mp4 $\rightarrow$ **Decoding** $\rightarrow$ yuv $\rightarrow$ **Lanczos Upsampling** $\rightarrow$ yuv
+
+Commands:
+```
+# Unsharp
+ffmpeg -s {WIDTH_DS}x{HEIGHT_DS} -r str(FPS) -pix_fmt yuv420p -f rawvideo -i Boat_ds.yuv -vf unsharp=luma_msize_x=5:luma_msize_y=5:luma_amount=1.0:chroma_msize_x=3:chroma_msize_y=3:chroma_amount=0.0 -f rawvideo -pix_fmt yuv420p Boat_sharp.yuv
+```
+
+Besides, the Lanczos downsampling command, encoding command, decoding command and Lanczos upsampling command are the same as those in the baseline.
